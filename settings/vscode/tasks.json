@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Upload",
+            "type": "shell",
+            "command": "picotool",
+            "options": {
+                "env": {
+                    "DEBUG_PATH": "${command:cmake.getLaunchTargetDirectory}",
+                    "DEBUG_FILE": "${command:cmake.buildTargetName}"
+                }
+            },
+            "args": [
+                "load",
+                "-v",
+                "-x",
+                "${command:cmake.getLaunchTargetPath}",
+                "-F"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Pico Debug Probe",
+            "cwd": "${workspaceRoot}",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "gdbPath": "gdb-multiarch",
+            "device": "RP2040",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/rp2040.cfg"
+            ],
+            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+            "postRestartCommands": [
+                "break main",
+                "continue"
+            ],
+            "searchDir": [
+                "${workspaceFolder}/rp2040/picodebug/tcl"
+            ],
+            "openOCDLaunchCommands": [
+                "adapter speed 20000"
+            ],
+        }
+    ]
+}
