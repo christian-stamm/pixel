@@ -1,0 +1,7 @@
+**/build/
+**/.cache/
+
+*.cmake
+*.o
+*.a
+*.so

@@ -1,0 +1,48 @@
+; Minimize Least Squared Error (LSE):
+; J = (1/2) * e^T * Q^(-1) * e
+; e = [tdesL - toptL, tdesH - toptH]^T
+; Q = [tmaxL - tminL, 0; tmaxH - tminH, 0]
+
+; Solve Equation System:
+; (toptL + toptH) = period
+; (e1 * Q22) + (e2 * Q11) = 0
+
+; Period Fraction
+; T1 = (toptL  - 0    ) / period;
+; T2 = (toptH  - toptL) / period;
+; T3 = (period - toptH) / period;
+
+; Solve Clock Cyle Equation System:
+; u / (u+v+w) = T1 <=> u = T1 * (u+v+w) <=> u*(1-T1) + v*(0-T1) + w*(0-T1) = 0
+; v / (u+v+w) = T2 <=> v = T2 * (u+v+w) <=> u*(0-T2) + v*(1-T2) + w*(0-T2) = 0
+; w / (u+v+w) = T3 <=> w = T3 * (u+v+w) <=> u*(0-T3) + v*(0-T3) + w*(1-T3) = 0
+
+; Optimized Clock Cycle OPS
+; u = w = 5 ops, v = 1.78 * w = 9 ops
+
+.program ws2812
+
+.define public T1 5
+.define public T2 9
+.define public T3 5
+.define public NUM_PORTS 2
+.define public NUM_LANES 16
+
+.side_set NUM_PORTS
+
+.wrap_target
+    mov     pins,       !null           side 0b00 
+    nop                                 side 0b10
+    nop                                 side 0b00
+    nop                                 side 0b01 [T1 - 4]
+
+    out     pins,       NUM_LANES       side 0b00 
+    nop                                 side 0b10
+    out     x,          NUM_LANES       side 0b00
+    nop                                 side 0b01 [T2 - 4]
+
+    mov     pins,       null            side 0b00 
+    nop                                 side 0b10
+    nop                                 side 0b00
+    pull    ifempty     block           side 0b01 [T3 - 4]
+.wrap
