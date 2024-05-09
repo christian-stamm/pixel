@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/pixel/rp2040",
+    "cmake.sourceDirectory": "${workspaceFolder}/pixel/platform/unix",
     "editor.formatOnSave": true,
     "clangd.arguments": [
         "--query-driver=/usr/bin/arm-none-eabi-g++"

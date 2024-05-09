@@ -1,0 +1,23 @@
+.program shifter
+.wrap_target
+    out     pins,   2
+    irq     wait    4
+.wrap
+
+.program dumper
+.define public SYNC_IRQ 0
+.side_set 1        
+
+preload:
+    pull    ifempty block       side 0
+    out     x,      32          side 0
+
+.wrap_target
+reload:
+    mov     y,      x           side 0
+shift:
+    irq     clear   4           side 0
+    jmp     y--     shift       side 1
+sync:
+    irq     wait    SYNC_IRQ    side 0
+.wrap

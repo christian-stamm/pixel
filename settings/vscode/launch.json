@@ -24,7 +24,7 @@
             ],
             "openOCDLaunchCommands": [
                 "adapter speed 20000"
-            ],
+            ]
         }
     ]
 }
