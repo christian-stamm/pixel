@@ -5,15 +5,12 @@ set -e
 
 # Installation path (absolute)
 workspacePath="$HOME/pixel"
-toolchainPath="$workspacePath/rp2040"
-openocdParams="--enable-cmsis-dap --enable-picoprobe --enable-bcm2835gpio"
+toolchainPath="$workspacePath/platform/pico"
+picoutilsPath="$toolchainPath/pico-utils"
 
-#----------------------------------------------------------
-#---------------------- Environment Setup -----------------
-#----------------------------------------------------------
-
-environment-setup()
+pico-setup()
 {   
+    echo "Pico Setup..."
     echo "Workspace PATH=$workspacePath"
     
     # # Check system up to date
@@ -23,8 +20,8 @@ environment-setup()
     echo "Installing Dependencies"
     GIT_DEPS="git"
     SDK_DEPS="cmake gcc-arm-none-eabi gcc-arm-linux-gnueabihf gcc g++"
-    PICO_DEPS="libusb-1.0-0 libusb-1.0-0-dev pkg-config"
-    OPENOCD_DEPS="gdb-multiarch automake autoconf build-essential texinfo libtool libftdi-dev libusb-1.0-0-dev libhidapi-dev checkinstall"
+    PICO_DEPS="libftdi-dev libhidapi-dev libusb-1.0-0 libusb-1.0-0-dev pkg-config"
+    OPENOCD_DEPS="gdb-multiarch automake autoconf build-essential texinfo libtool checkinstall"
     VSCODE_DEPS="libx11-xcb1 libxcb-dri3-0 libdrm2 libgbm1 libegl-mesa0"
     DEPS="$GIT_DEPS $SDK_DEPS $PICO_DEPS $OPENOCD_DEPS $UART_DEPS $VSCODE_DEPS"
     sudo apt install -y $DEPS
@@ -82,9 +79,9 @@ environment-setup()
 
     # Build Picoprobe
     echo "Building Picoprobe..."
-    cd "$toolchainPath/picoprobe"
+    cd "$picoutilsPath/picoprobe"
 
-    if [ ! -d "$toolchainPath/picoprobe/build" ]; then
+    if [ ! -d "$picoutilsPath/picoprobe/build" ]; then
         echo "Create build directory..."
         mkdir build
     fi
@@ -95,9 +92,9 @@ environment-setup()
 
     # Build Picotool
     echo "Building Picotool..."
-    cd "$toolchainPath/picotool"
+    cd "$picoutilsPath/picotool"
 
-    if [ ! -d "$toolchainPath/picotool/build" ]; then
+    if [ ! -d "$picoutilsPath/picotool/build" ]; then
         echo "Create build directory..."
         mkdir build
     fi
@@ -109,13 +106,14 @@ environment-setup()
 
     # Build OpenOCD
     echo "Building OpenOCD..."
-    cd "$toolchainPath/picodebug"
+    cd "$picoutilsPath/picodebug"
+    openocdParams="--enable-cmsis-dap --enable-picoprobe --enable-bcm2835gpio"
     OPENOCD_CONFIGURE_ARGS="--enable-ftdi --enable-sysfsgpio $openocdParams"
     ./bootstrap
     ./configure $OPENOCD_CONFIGURE_ARGS
     make
     sudo make install
-    sudo cp "$toolchainPath/picodebug/contrib/60-openocd.rules" "/etc/udev/rules.d/"
+    sudo cp "$picoutilsPath/picodebug/contrib/60-openocd.rules" "/etc/udev/rules.d/"
     sudo udevadm control --reload-rules && sudo udevadm trigger # restart udev
 
     sudo apt install binutils-multiarch
@@ -137,8 +135,19 @@ environment-setup()
     # sudo apt upgrade libstdc++6
 }
 
+unix-setup()
+{   
+    echo "Unix Setup..."
+    # # Check system up to date
+    # sudo apt update
+    # sudo apt upgrade -y
 
+    # # BCM27XX Setup
+    # sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    # sudo apt upgrade libstdc++6
+}
 
 echo "Init Setup."
-environment-setup
+pico-setup
+unix-setup
 echo "Setup done."
