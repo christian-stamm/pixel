@@ -1,0 +1,30 @@
+.program pulser
+.side_set 2 
+;sidecfg: nOE / LAT
+
+.define public SHIFT_TRIG_IRQ       0
+.define public SHIFT_DONE_IRQ       1
+
+loadPlanes:
+    pull    ifempty block           side 0b10
+    out     isr,    32              side 0b10
+
+.wrap_target
+    mov     y,      isr             side 0b10
+selectLine:
+    pull    ifempty block           side 0b10
+    out     pins,   32              side 0b10
+syncPulse:
+    wait    1 irq   SHIFT_DONE_IRQ  side 0b10
+latchData:
+    nop                             side 0b11
+syncShift:
+    irq     set     SHIFT_TRIG_IRQ  side 0b10
+loadPulse:
+    pull    ifempty block           side 0b10
+    out     x,      32              side 0b10
+pulseDelay:
+    jmp     x--     pulseDelay      side 0b00
+nextPulse:
+    jmp     y--     syncPulse       side 0b10
+.wrap

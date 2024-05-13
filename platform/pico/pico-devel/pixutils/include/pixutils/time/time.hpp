@@ -1,10 +1,10 @@
 #pragma once
-#include "pico/types.h"
 #include "pixutils/types.hpp"
 
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <ostream>
 #include <pico/time.h>
 #include <sstream>
 #include <string>

@@ -1,13 +1,9 @@
 #pragma once
 #include "pixutils/time/time.hpp"
 
-#include <ios>
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
-
-#define BLOCK_INTENT 30
 
 enum class LogLevel {
     CRITICAL = (1 << 0),
@@ -45,22 +41,35 @@ class Stream {
     {
         if (!msg.empty() && flush) {
             std::stringstream fmt;
+
+            const int timeWidth  = 12;
+            const int levelWidth = 5;
+            const int classWidth = 7;
+
             const std::string time(Time::now().to_string());
 
-            fmt << std::setw(BLOCK_INTENT) << std::left;
-            fmt << std::setfill(' ') << std::uppercase;
-            fmt << ("[" + time + "]" + "[" + level + "]" + "[" + name + "] ");
+            fmt << std::left << std::setfill(' ') << "[ "                      //
+                << std::setw(timeWidth) << format(time, timeWidth) << " | "    //
+                << std::setw(levelWidth) << format(level, levelWidth) << " | " //
+                << std::setw(classWidth) << format(name, classWidth) << " ] "; //
 
             std::cout << fmt.str() << msg << std::endl;
         }
     }
 
     const std::string name;
+    const std::string level;
     const bool        flush;
 
   private:
     std::stringstream ss;
-    const std::string level;
+
+    std::string format(const std::string& str, size_t width)
+    {
+        std::string fmt = str.substr(0, std::min(str.length(), width));
+        std::transform(fmt.begin(), fmt.end(), fmt.begin(), ::toupper);
+        return fmt;
+    }
 };
 
 class Logger {

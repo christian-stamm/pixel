@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+template <typename T> using SubBuffer = std::span<T>;
+
 template <typename T> class Buffer : public std::vector<T> {
   public:
     using std::vector<T>::vector;
@@ -56,8 +58,8 @@ template <typename T> class Buffer : public std::vector<T> {
         std::fill(this->begin(), this->end(), value);
     }
 
-    std::span<T> subrange(Word offset, Word length)
+    inline SubBuffer<T> subrange(Word offset, Word length)
     {
-        return std::span<T>({this->data() + offset, length});
+        return SubBuffer<T>({this->data() + offset, length});
     }
 };

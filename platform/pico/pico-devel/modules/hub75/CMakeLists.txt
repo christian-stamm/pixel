@@ -13,18 +13,8 @@ add_executable(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME} pixutils)
 
 target_link_libraries(${PROJECT_NAME} 
-    pixutils 
     Eigen3::Eigen
-    pico_stdlib
-    pico_multicore
-    pico_time
-    pico_sync
-    pico_bit_ops
-    hardware_irq
-    hardware_dma
-    hardware_spi
-    hardware_pio
-    hardware_gpio
+    pixutils 
 )
 
 target_include_directories(
@@ -35,7 +25,11 @@ target_include_directories(
 )
 
 pico_generate_pio_header(${PROJECT_NAME} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/driver.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/shifter.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
+)
+
+pico_generate_pio_header(${PROJECT_NAME} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/pulser.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
 )
 
 # enable usb output, disable uart output

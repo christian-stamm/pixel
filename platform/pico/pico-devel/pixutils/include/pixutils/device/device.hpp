@@ -7,24 +7,53 @@ class Device {
   public:
     Device(const std::string& name)
         : logger(Logger::getLogger(name))
+        , enabled(false)
     {
     }
 
-    virtual void load()
+    void enable(bool enabled = true)
     {
-        logger.debug() << logger.name << " (Device) loaded.";
+        const bool modifyState = (enabled != isEnabled());
+
+        if (modifyState) {
+            this->enabled = enabled;
+
+            if (enabled) {
+                prepare();
+            }
+            else {
+                cleanup();
+            }
+
+            logger.debug() << "Device " << (enabled ? "enabled" : "disabled") << ".";
+        }
     }
 
-    virtual void unload()
+    void disable()
     {
-        logger.debug() << logger.name << " (Device) unloaded.";
+        enable(false);
+        reset();
     }
 
-    virtual void run()
+    void restart()
     {
-        logger.debug() << logger.name << " (Device) running.";
-    };
+        disable();
+        enable();
+    }
+
+    bool isEnabled() const
+    {
+        return enabled;
+    }
+
+    virtual void reset() {}
 
   protected:
+    virtual void prepare() = 0;
+    virtual void cleanup() = 0;
+
     Logger logger;
+
+  private:
+    bool enabled;
 };
