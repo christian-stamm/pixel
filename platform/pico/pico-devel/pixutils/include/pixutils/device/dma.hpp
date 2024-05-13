@@ -1,53 +1,76 @@
 #pragma once
 #include "pixutils/device/device.hpp"
-#include "pixutils/types.hpp"
 
 #include <hardware/dma.h>
 #include <string>
 
-class DmaController : public Device {
+using DmaXferSize = dma_channel_transfer_size;
+
+struct DmaConfig {
+    uint        data_req;
+    bool        read_incr;
+    bool        write_incr;
+    DmaXferSize bitsize;
+};
+
+class DmaDevice : public Device {
   public:
-    DmaController(
-        const Config& config, const uint data_req, const bool read_incr, const bool write_incr,
-        const DmaXferSize bitsize)
-        : Device("DMA", config)
-        , channel_ID(dma_claim_unused_channel(true))
-        , dmaCFG(dma_channel_get_default_config(channel_ID))
+    DmaDevice(const DmaConfig& config)
+        : Device("DMA")
+        , channelNum(dma_claim_unused_channel(true))
+        , config(config)
+        , channelCfg(dma_channel_get_default_config(channelNum))
     {
-        dma_channel_unclaim(channel_ID);
-        channel_config_set_dreq(&dmaCFG, data_req);
-        channel_config_set_read_increment(&dmaCFG, read_incr);
-        channel_config_set_write_increment(&dmaCFG, write_incr);
-        channel_config_set_transfer_data_size(&dmaCFG, bitsize);
+        channel_config_set_dreq(&channelCfg, config.data_req);
+        channel_config_set_read_increment(&channelCfg, config.read_incr);
+        channel_config_set_write_increment(&channelCfg, config.write_incr);
+        channel_config_set_transfer_data_size(&channelCfg, config.bitsize);
     }
 
-    virtual void load() override
+    ~DmaDevice()
     {
-        dma_channel_claim(channel_ID);
-        dma_channel_set_config(channel_ID, &dmaCFG, false);
-        Device::load();
+        dma_channel_unclaim(channelNum);
     }
 
-    virtual void unload() override
+    inline void abort() const
     {
-        dma_channel_unclaim(channel_ID);
-        dma_channel_cleanup(channel_ID);
-        Device::unload();
+        dma_channel_abort(channelNum);
     }
 
-    void transfer(const volatile void* src, volatile void* dest, const Word length) const
+    inline bool busy() const
     {
-        //     logger.log() << "Transfer from" << const_cast<const void*>(src) << "to" << const_cast<const void*>(dest)
-        //     << "("
-        //                  << length << ")";
-
-        dma_channel_set_read_addr(channel_ID, src, false);
-        dma_channel_set_write_addr(channel_ID, dest, false);
-        dma_channel_set_trans_count(channel_ID, length, true);
+        return dma_channel_is_busy(channelNum);
     }
 
-    const uint channel_ID;
+    inline void transfer(const volatile void* src, volatile void* dest, const Word length) const
+    {
+        // logger.debug() << "Transfer: "           //
+        //                << std::hex << src        //
+        //                << " -> "                 //
+        //                << std::hex << dest       //
+        //                << " (" << length << ")"; //
+
+        if (busy()) {
+            abort();
+        }
+
+        dma_channel_configure(channelNum, &channelCfg, dest, src, length, true);
+    }
+
+    const uint      channelNum;
+    const DmaConfig config;
+
+  protected:
+    virtual void prepare() override
+    {
+        dma_channel_set_config(channelNum, &channelCfg, false);
+    }
+
+    virtual void cleanup() override
+    {
+        dma_channel_cleanup(channelNum);
+    }
 
   private:
-    dma_channel_config dmaCFG;
+    dma_channel_config channelCfg;
 };

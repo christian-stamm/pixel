@@ -1,6 +1,5 @@
 #pragma once
 #include "pixutils/system/logger.hpp"
-#include "pixutils/system/system.hpp"
 #include "pixutils/types.hpp"
 
 #include <bitset>
@@ -9,45 +8,43 @@
 #define UART_MASK (0x00000003)
 #define GPIO_MASK (0x1FFFFFFF & ~UART_MASK)
 
-#define PIN_MASK(x) (static_cast<Word>(1 << x))
+#define PIN_MASK(x) (BitMask(x))
+#define PIN_WRAP(x) (x % 32)
 
 class GPIO {
   public:
-    static inline void setPin(Word pin, bool enabled = true)
+    static inline void setPin(Pin pin, bool enabled = true)
     {
         setPins(enabled << pin, 1 << pin);
     }
 
-    static inline void clrPin(Word pin)
+    static inline void clrPin(Pin pin)
     {
         setPin(pin, false);
     }
 
-    static inline void pulsePin(Word pin, Word numPulses = 1, bool invPulse = false)
+    static inline void pulsePin(Pin pin, bool invPulse = false)
     {
-        for (Word pulse = 0; pulse < numPulses; pulse++) {
-            setPin(pin, !invPulse);
-            setPin(pin, invPulse);
-        }
+        setPin(pin, !invPulse);
+        setPin(pin, invPulse);
     }
 
-    static inline void setPins(Word pins, Word mask = GPIO_MASK)
+    static inline void setPins(Pin pins, Mask mask = GPIO_MASK)
     {
         gpio_put_masked(mask & GPIO_MASK, pins);
-        System::sleep(100e-9);
     }
 
-    static inline void clrPins(Word pins, Word mask = GPIO_MASK)
+    static inline void clrPins(Pin pins, Mask mask = GPIO_MASK)
     {
         setPins(~pins, mask & pins);
     }
 
-    static inline bool getPin(Word pin)
+    static inline bool getPin(Pin pin)
     {
         return gpio_get(pin);
     }
 
-    static inline Word getPins()
+    static inline Mask getPins()
     {
         return gpio_get_all();
     }

@@ -2,6 +2,8 @@
 #include "pixutils/memory/buffer.hpp"
 #include "pixutils/types.hpp"
 
+#include <pico/bit_ops.h>
+
 class Matrix32 : public Buffer<Word> {
   public:
     Matrix32()

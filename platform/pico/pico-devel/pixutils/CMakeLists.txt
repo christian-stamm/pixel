@@ -17,15 +17,17 @@ target_include_directories(
 )
 
 target_link_libraries(${PROJECT_NAME} INTERFACE
-    pico_stdlib
-    pico_multicore
     pico_time
     pico_sync
+    pico_stdlib
     pico_bit_ops
+    pico_multicore
     hardware_irq
     hardware_dma
+    hardware_pwm
     hardware_spi
     hardware_pio
+    hardware_gpio
 )
 
 # install(

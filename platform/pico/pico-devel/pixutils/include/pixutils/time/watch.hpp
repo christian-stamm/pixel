@@ -52,15 +52,18 @@ class Watch {
         return timeout.has_value() ? std::max(timeout.value() - elapsed(), 0.0) : 0.0;
     }
 
-    const Estimator& tick()
+    const double tick()
     {
-        const double t = tickpoint.value_or(Time::runtime());
-
-        if (tickpoint.has_value()) {
-            estimator.update(delta(t));
-        }
+        const double t  = Time::runtime();
+        const double dt = tickpoint.has_value() ? t - tickpoint.value() : 0;
 
         tickpoint = t;
+        return dt;
+    }
+
+    const Estimator& capture()
+    {
+        estimator.update(tick());
         return estimator;
     }
 

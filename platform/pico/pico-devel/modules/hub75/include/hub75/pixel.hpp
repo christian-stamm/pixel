@@ -1,3 +1,4 @@
+#pragma once
 #include "pixutils/types.hpp"
 
 #include <Eigen/Dense>

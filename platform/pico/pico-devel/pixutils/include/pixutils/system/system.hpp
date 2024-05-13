@@ -1,4 +1,5 @@
 #pragma once
+#include "hardware/gpio.h"
 #include "pixutils/system/logger.hpp"
 #include "pixutils/time/watch.hpp"
 #include "pixutils/types.hpp"
@@ -49,22 +50,22 @@ class System {
         }
     }
 
-    static bool isRunning()
+    static inline bool isRunning()
     {
         return running;
     }
 
-    static bool isConnected()
+    static inline bool isConnected()
     {
         return stdio_usb_connected();
     }
 
-    static bool isRebooted()
+    static inline bool isRebooted()
     {
         return watchdog_caused_reboot();
     }
 
-    static Stream log(const LogLevel& level = LogLevel::DEBUG)
+    static inline Stream log(const LogLevel& level = LogLevel::DEBUG)
     {
         return logger.log(level);
     }
@@ -72,7 +73,12 @@ class System {
   private:
     static bool setup()
     {
+        gpio_init_mask(0xFFFFFFFF);
+        gpio_set_dir_all_bits(0xFFFFFFFF);
+        gpio_set_mask(0x00000000);
+
         stdio_init_all();
+
         running = true;
         return isRunning();
     }
