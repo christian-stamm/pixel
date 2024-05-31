@@ -1,8 +1,6 @@
 #pragma once
 #include "hub75/panel.hpp"
-#include "hub75/pixel.hpp"
 #include "pixutils/device/device.hpp"
-#include "pixutils/memory/buffer.hpp"
 #include "pixutils/types.hpp"
 
 #include <cmath>
@@ -10,40 +8,17 @@
 #include <hardware/gpio.h>
 #include <hardware/pio.h>
 #include <pico/time.h>
-#include <vector>
 
 class Driver : public Device {
   public:
     Driver(const PanelConfig& cfg)
         : Device("Driver")
         , panel(cfg)
-        , buffer(panel.getFramebuffer())
         , line(0)
     {
     }
 
-    void update(const std::vector<Pixel>& pixels)
-    {
-        const uint range = 6 * 64 * 12;
-
-        for (int row = 0; row < panel.numLines; row++) {
-            Byte color = 0;
-
-            if (row % 3 == 0) {
-                color = BitMask(0) | BitMask(3) | BitMask(4);
-            }
-            else if (row % 3 == 1) {
-                color = BitMask(1) | BitMask(4) | BitMask(5);
-            }
-            else if (row % 3 == 2) {
-                color = BitMask(2) | BitMask(5) | BitMask(0);
-            }
-
-            for (Byte& v : buffer.subrange(row * range, range)) {
-                v = color;
-            }
-        }
-    }
+    void setPixel(Word col, Word row, Word red, Word green, Word blue) {}
 
   protected:
     virtual void prepare() override
@@ -70,13 +45,13 @@ class Driver : public Device {
         panel.dump(line);
 
         line += 1;
-        line %= panel.numLines;
+        line %= panel.numRows;
     }
+
+    inline void unroll(Word offset, Word color) {}
 
     Panel panel;
     Word  line;
-
-    Buffer<Byte>& buffer;
 
     repeating_timer_t timer;
 };

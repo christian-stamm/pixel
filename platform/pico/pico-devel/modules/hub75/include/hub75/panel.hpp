@@ -5,14 +5,19 @@
 #include "pixutils/device/device.hpp"
 #include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
+#include "pixutils/memory/buffer.hpp"
+#include "pixutils/time/watch.hpp"
 #include "pixutils/types.hpp"
 
+#include <cmath>
 #include <hardware/clocks.h>
 
 #define NUM_BCM_BITS  12
 #define NUM_RGB_PINS  6
 #define NUM_MUX_PINS  5
 #define NUM_CTRL_PINS 3
+
+#define UPSCALER ((4095.0 - 255.0) / (255.0 * 255.0 * 255.0 * 255.0))
 
 struct PanelConfig {
     uint  size;
@@ -50,7 +55,9 @@ class Panel : public Device {
         , powerPin(ctrlBase + 2)
 
         , numLines(1 << NUM_MUX_PINS)
-        , numPixels(size * numLines)
+        , numCols(size)
+        , numRows(2 * numLines)
+        , numPixels(numCols * numRows)
 
         , shifter(
               {
@@ -65,7 +72,7 @@ class Panel : public Device {
                   clockPin,
                   size,
                   xferFreq,
-                  numPixels * NUM_BCM_BITS,
+                  numCols * numLines * NUM_BCM_BITS,
               })
         , pulser(
               {
@@ -87,6 +94,16 @@ class Panel : public Device {
     {
     }
 
+    void render(Buffer<Byte>& input)
+    {
+        Watch watch;
+
+        Buffer<Byte>& rgbBuffer  = shifter.getBuffer();
+        const Word    halfPixels = numCols * numLines;
+
+        logger.debug() << watch.elapsed();
+    }
+
     inline void dump(Word line) const
     {
         const bool newFrame = line == 0;
@@ -100,9 +117,9 @@ class Panel : public Device {
         pulser.trigger();
     }
 
-    inline Buffer<Byte>& getFramebuffer()
+    static inline Word upscale(Byte color)
     {
-        return shifter.getBuffer();
+        return color * (color * UPSCALER + 1);
     }
 
     const PIO pioID;
@@ -120,6 +137,8 @@ class Panel : public Device {
     const Pin powerPin;
 
     const uint numLines;
+    const uint numCols;
+    const uint numRows;
     const uint numPixels;
 
   protected:
