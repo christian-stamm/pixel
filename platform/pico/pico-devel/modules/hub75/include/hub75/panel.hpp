@@ -49,8 +49,9 @@ class Panel : public Device {
         , latchPin(ctrlBase + 1)
         , powerPin(ctrlBase + 2)
 
-        , numLines(1 << NUM_MUX_PINS)
-        , numPixels(size * numLines)
+        , numCols(size)
+        , numRows(1 << NUM_MUX_PINS)
+        , numPixels(size * numRows)
 
         , shifter(
               {
@@ -119,7 +120,8 @@ class Panel : public Device {
     const Pin latchPin;
     const Pin powerPin;
 
-    const uint numLines;
+    const uint numCols;
+    const uint numRows;
     const uint numPixels;
 
   protected:

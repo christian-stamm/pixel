@@ -22,11 +22,12 @@ class Driver : public Device {
     {
     }
 
-    void update(const std::vector<Pixel>& pixels)
+    void setPixel(Word col, Word row, Word red, Word green, Word blue)
     {
+
         const uint range = 6 * 64 * 12;
 
-        for (int row = 0; row < panel.numLines; row++) {
+        for (int row = 0; row < panel.numRows; row++) {
             Byte color = 0;
 
             if (row % 3 == 0) {
@@ -36,7 +37,7 @@ class Driver : public Device {
                 color = BitMask(1) | BitMask(4) | BitMask(5);
             }
             else if (row % 3 == 2) {
-                color = BitMask(2) | BitMask(5) | BitMask(0);
+                color = BitMask(2) | BitMask(5) | BitMask(3);
             }
 
             for (Byte& v : buffer.subrange(row * range, range)) {
@@ -70,8 +71,10 @@ class Driver : public Device {
         panel.dump(line);
 
         line += 1;
-        line %= panel.numLines;
+        line %= panel.numRows;
     }
+
+    inline void unroll(Word offset, Word color) {}
 
     Panel panel;
     Word  line;
