@@ -14,6 +14,8 @@
 #define NUM_MUX_PINS  5
 #define NUM_CTRL_PINS 3
 
+#define UPSCALER ((4095.0 - 255.0) / (255.0 * 255.0))
+
 struct PanelConfig {
     uint  size;
     uint  pinBase;
@@ -59,28 +61,66 @@ class Panel : public Device {
     {
     }
 
+    static inline DByte upscale(const Byte& color)
+    {
+        return color * (color * UPSCALER + 1);
+    }
+
+    inline void render() const
+    {
+        Watch watch;
+
+        for (int index = 0; index < buffer.size(); index += 6) {
+            const DByte r1 = upscale(buffer[index + 0]);
+            const DByte g1 = upscale(buffer[index + 1]);
+            const DByte b1 = upscale(buffer[index + 2]);
+            const DByte r2 = upscale(buffer[index + 3]);
+            const DByte g2 = upscale(buffer[index + 4]);
+            const DByte b2 = upscale(buffer[index + 5]);
+
+            for (int bit = 0; bit < NUM_BCM_BITS; bit++) {
+                Mask mask = BitMask(bit);
+                Word out  = 0;
+
+                out |= ((r1 & mask) != 0) << 0;
+                out |= ((g1 & mask) != 0) << 0;
+                out |= ((b1 & mask) != 0) << 0;
+                out |= ((r2 & mask) != 0) << 0;
+                out |= ((g2 & mask) != 0) << 0;
+                out |= ((b2 & mask) != 0) << 0;
+
+                shifter.shift(out);
+            }
+        }
+
+        logger.debug() << watch.elapsed();
+    }
+
     inline void run()
     {
         while (System::isRunning()) {
 
-            for (Word row = 0; row < numRows; row++) {
-                const Word nextRow   = (row + 1) % numRows;
-                const Word nextPlane = 0;
+            render();
+            System::sleep(1);
 
-                select(row);
+            // for (Word row = 0; row < numRows; row++) {
+            //     const Word nextRow   = (row + 1) % numRows;
+            //     const Word nextPlane = 0;
 
-                for (Word plane = 1; plane < NUM_BCM_BITS; plane++) {
-                    latch();
-                    power(true);
-                    shift(row, plane);
-                    power(false);
-                }
+            //     select(row);
 
-                latch();
-                power(true);
-                shift(nextRow, nextPlane);
-                power(false);
-            }
+            //     for (Word plane = 1; plane < NUM_BCM_BITS; plane++) {
+            //         latch();
+            //         power(true);
+            //         shift(row, plane);
+            //         power(false);
+            //     }
+
+            //     latch();
+            //     power(true);
+            //     shift(nextRow, nextPlane);
+            //     power(false);
+            // }
         }
     }
 
