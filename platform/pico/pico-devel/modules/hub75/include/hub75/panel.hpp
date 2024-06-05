@@ -1,10 +1,10 @@
 #pragma once
 #include "hardware/pio.h"
-#include "hub75/pulser.hpp"
-#include "hub75/shifter.hpp"
 #include "pixutils/device/device.hpp"
 #include "pixutils/device/gpio.hpp"
-#include "pixutils/device/pio.hpp"
+#include "pixutils/memory/buffer.hpp"
+#include "pixutils/system/system.hpp"
+#include "pixutils/time/watch.hpp"
 #include "pixutils/types.hpp"
 
 #include <hardware/clocks.h>
@@ -53,57 +53,35 @@ class Panel : public Device {
         , numRows(1 << NUM_MUX_PINS)
         , numPixels(size * numRows)
 
-        , shifter(
-              {
-                  pioID,
-                  0,
-                  0,
-                  false,
-              },
-              {
-                  rgbBase,
-                  NUM_RGB_PINS,
-                  clockPin,
-                  size,
-                  xferFreq,
-                  numPixels * NUM_BCM_BITS,
-              })
-        , pulser(
-              {
-                  pioID,
-                  1,
-                  16,
-                  false,
-              },
-              {
-                  muxBase,
-                  NUM_MUX_PINS,
-                  latchPin,
-                  powerPin,
-                  NUM_BCM_BITS,
-                  1e-6,
-                  1.45f,
-              })
-
+        , xferFreq(xferFreq)
+        , xferTime(numCols / xferFreq)
+        , buffer(3 * numPixels)
     {
     }
 
-    inline void dump(Word line) const
+    inline void run()
     {
-        const bool newFrame = line == 0;
+        while (System::isRunning()) {
 
-        pulser.select(line);
+            for (Word row = 0; row < numRows; row++) {
+                const Word nextRow   = (row + 1) % numRows;
+                const Word nextPlane = 0;
 
-        if (newFrame) {
-            shifter.trigger();
+                select(row);
+
+                for (Word plane = 1; plane < NUM_BCM_BITS; plane++) {
+                    latch();
+                    power(true);
+                    shift(row, plane);
+                    power(false);
+                }
+
+                latch();
+                power(true);
+                shift(nextRow, nextPlane);
+                power(false);
+            }
         }
-
-        pulser.trigger();
-    }
-
-    inline Buffer<Byte>& getFramebuffer()
-    {
-        return shifter.getBuffer();
     }
 
     const PIO pioID;
@@ -124,26 +102,20 @@ class Panel : public Device {
     const uint numRows;
     const uint numPixels;
 
+    const float xferFreq;
+    const float xferTime;
+
   protected:
     void prepare() override
     {
-        unlockPanel();
-        shifter.enable();
-        pulser.enable();
-
-        PioMachine::run(pioID, 0b1111);
+        setupPins();
+        // unlockPanel();
     }
 
-    void cleanup() override
-    {
-        PioMachine::run(pioID, 0b0000);
-
-        shifter.disable();
-        pulser.disable();
-    }
+    void cleanup() override {}
 
   private:
-    void unlockPanel() const
+    void setupPins() const
     {
         gpio_init_mask(ctrlmask);
         gpio_init_mask(muxMask);
@@ -151,7 +123,10 @@ class Panel : public Device {
         gpio_set_dir_out_masked(ctrlmask);
         gpio_set_dir_out_masked(muxMask);
         gpio_set_dir_out_masked(rgbMask);
+    }
 
+    void unlockPanel() const
+    {
         const DByte c11 = 0b0111111111111111; // full bright
         const DByte c12 = 0b0000000001000000; // panel on.
 
@@ -165,13 +140,13 @@ class Panel : public Device {
         GPIO::clrPin(latchPin);
         std::bitset<16> configBits(value);
 
-        for (Word led = 0; led < shifter.xferBits; ++led) {
+        for (Word led = 0; led < numCols; ++led) {
             Word position   = 16 - (led % 16) - 1;
             bool writeColor = configBits.test(position);
-            bool writeLatch = ((shifter.xferBits - configReg) < led);
+            bool writeLatch = ((numCols - configReg) < led);
 
             GPIO::setPin(latchPin, writeLatch);
-            GPIO::setPins(writeColor ? 0xFFFFFFFF : 0x00000000, rgbMask);
+            GPIO::setPins(writeColor ? rgbMask : 0x0, rgbMask);
             GPIO::pulsePin(clockPin);
         }
 
@@ -179,6 +154,42 @@ class Panel : public Device {
         GPIO::clrPin(latchPin);
     }
 
-    Shifter shifter;
-    Pulser  pulser;
+    inline void power(bool enabled) const
+    {
+        GPIO::setPin(powerPin, !enabled);
+    }
+
+    inline void select(const Byte& line) const
+    {
+        GPIO::setPins(line << muxBase, muxMask);
+    }
+
+    inline void latch() const
+    {
+        GPIO::pulsePin(latchPin);
+    }
+
+    inline void shift(Word line, Word plane)
+    {
+        const Word length  = (2 * 3 * numCols);
+        const Word source  = (line + 0) * length;
+        const Word target  = (line + 1) * length;
+        const Word bitMask = BitMask(plane);
+
+        for (Word index = source; index < target; index += 6) {
+            Word rgb = 0;
+
+            rgb |= ((buffer[index + 0] & bitMask) != 0) << 0; // r1
+            rgb |= ((buffer[index + 1] & bitMask) != 0) << 1; // g1
+            rgb |= ((buffer[index + 2] & bitMask) != 0) << 2; // b1
+            rgb |= ((buffer[index + 3] & bitMask) != 0) << 3; // r2
+            rgb |= ((buffer[index + 4] & bitMask) != 0) << 4; // g2
+            rgb |= ((buffer[index + 5] & bitMask) != 0) << 5; // b2
+
+            GPIO::setPins(rgb << rgbBase, rgbMask);
+            GPIO::pulsePin(clockPin);
+        }
+    }
+
+    Buffer<Byte> buffer;
 };

@@ -24,14 +24,6 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>/
 )
 
-pico_generate_pio_header(${PROJECT_NAME} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/shifter.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
-)
-
-pico_generate_pio_header(${PROJECT_NAME} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/pulser.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
-)
-
 # enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)

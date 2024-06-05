@@ -11,7 +11,7 @@
 class Watch {
 
   public:
-    Watch(const std::optional<const double> timeout = std::nullopt, const bool trigger = true)
+    Watch(const std::optional<double>& timeout = std::nullopt, const bool trigger = true)
         : timeout(timeout)
         , estimator(Estimator())
         , tickpoint(std::nullopt)
@@ -37,7 +37,7 @@ class Watch {
         tickpoint  = checkpoint;
     }
 
-    bool expired() const
+    inline bool expired() const
     {
         return timeout.has_value() ? (timeout.value() <= elapsed()) : false;
     }
@@ -47,12 +47,12 @@ class Watch {
         return checkpoint.has_value() ? delta(checkpoint.value()) : 0;
     }
 
-    const double remaining() const
+    inline double remaining() const
     {
         return timeout.has_value() ? std::max(timeout.value() - elapsed(), 0.0) : 0.0;
     }
 
-    const double tick()
+    inline double tick()
     {
         const double t  = Time::runtime();
         const double dt = tickpoint.has_value() ? t - tickpoint.value() : 0;
@@ -61,13 +61,13 @@ class Watch {
         return dt;
     }
 
-    const Estimator& capture()
+    inline const Estimator& capture()
     {
         estimator.update(tick());
         return estimator;
     }
 
-    const std::string to_string() const
+    inline const std::string to_string() const
     {
         const std::string placeholder = "<undefined>";
 
@@ -110,8 +110,6 @@ class Watch {
         return os;
     }
 
-    const std::optional<const double> timeout;
-
   private:
     inline const double delta(const double reference) const
     {
@@ -119,6 +117,7 @@ class Watch {
     }
 
     Estimator             estimator;
+    std::optional<double> timeout;
     std::optional<double> tickpoint;
     std::optional<double> checkpoint;
 };
