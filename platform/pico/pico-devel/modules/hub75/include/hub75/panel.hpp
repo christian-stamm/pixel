@@ -6,6 +6,7 @@
 #include "pixutils/system/system.hpp"
 #include "pixutils/time/watch.hpp"
 #include "pixutils/types.hpp"
+#include "shifter.hpp"
 
 #include <hardware/clocks.h>
 
@@ -55,8 +56,19 @@ class Panel : public Device {
         , numRows(1 << NUM_MUX_PINS)
         , numPixels(size * numRows)
 
-        , xferFreq(xferFreq)
-        , xferTime(numCols / xferFreq)
+        , shifter(
+              {
+                  pioID,
+                  0,
+                  0,
+                  true,
+              },
+              {
+                  rgbBase,
+                  NUM_RGB_PINS,
+                  clockPin,
+              })
+
         , buffer(3 * numPixels)
     {
     }
@@ -70,26 +82,12 @@ class Panel : public Device {
     {
         Watch watch;
 
+        const Word clockmask  = BitMask(clockPin);
+        const Word rgbclkMask = rgbMask | clockmask;
+
         for (int index = 0; index < buffer.size(); index += 6) {
-            const DByte r1 = upscale(buffer[index + 0]);
-            const DByte g1 = upscale(buffer[index + 1]);
-            const DByte b1 = upscale(buffer[index + 2]);
-            const DByte r2 = upscale(buffer[index + 3]);
-            const DByte g2 = upscale(buffer[index + 4]);
-            const DByte b2 = upscale(buffer[index + 5]);
-
             for (int bit = 0; bit < NUM_BCM_BITS; bit++) {
-                Mask mask = BitMask(bit);
-                Word out  = 0;
-
-                out |= ((r1 & mask) != 0) << 0;
-                out |= ((g1 & mask) != 0) << 0;
-                out |= ((b1 & mask) != 0) << 0;
-                out |= ((r2 & mask) != 0) << 0;
-                out |= ((g2 & mask) != 0) << 0;
-                out |= ((b2 & mask) != 0) << 0;
-
-                shifter.shift(out);
+                shifter.shift(&buffer[index], bit);
             }
         }
 
@@ -142,17 +140,19 @@ class Panel : public Device {
     const uint numRows;
     const uint numPixels;
 
-    const float xferFreq;
-    const float xferTime;
-
   protected:
     void prepare() override
     {
         setupPins();
         // unlockPanel();
+
+        shifter.enable();
     }
 
-    void cleanup() override {}
+    void cleanup() override
+    {
+        shifter.disable();
+    }
 
   private:
     void setupPins() const
@@ -231,5 +231,6 @@ class Panel : public Device {
         }
     }
 
+    Shifter      shifter;
     Buffer<Byte> buffer;
 };

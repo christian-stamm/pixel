@@ -1,5 +1,6 @@
 #pragma once
 #include "pixutils/device/device.hpp"
+#include "pixutils/types.hpp"
 
 #include <hardware/clocks.h>
 #include <hardware/gpio.h>
@@ -31,6 +32,11 @@ class PioMachine : public Device {
     {
         this->program = program;
         this->smcfg   = smcfg;
+    }
+
+    void modify(const Word line, const DByte instr) const
+    {
+        pioID->instr_mem[address + line] = instr;
     }
 
     static void run(const PIO& pioID, const Mask& mask)
