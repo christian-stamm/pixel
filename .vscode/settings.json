@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "editor.formatOnSave": true,
+    "clangd.arguments": [
+        "--query-driver=/usr/bin/arm-none-eabi-g++"
+    ]
+}

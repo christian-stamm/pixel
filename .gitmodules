@@ -1,22 +1,19 @@
-[submodule "platform/pico/pico-examples"]
-	path = platform/pico/pico-examples
+[submodule "pico-examples"]
+	path = pico-examples
 	url = https://github.com/raspberrypi/pico-examples.git
-[submodule "platform/pico/pico-extras"]
-	path = platform/pico/pico-extras
-	url = https://github.com/raspberrypi/pico-extras
-[submodule "platform/pico/pico-playground"]
-	path = platform/pico/pico-playground
-	url = https://github.com/raspberrypi/pico-playground
-[submodule "platform/pico/pico-sdk"]
-	path = platform/pico/pico-sdk
+[submodule "pico-playground"]
+	path = pico-playground
+	url = https://github.com/raspberrypi/pico-playground.git
+[submodule "pico-toolchain/pico-sdk"]
+	path = pico-toolchain/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk
-[submodule "platform/pico/pico-utils/picodebug"]
-	path = platform/pico/pico-utils/picodebug
-	url = https://github.com/raspberrypi/openocd
-	branch = rp2040
-[submodule "platform/pico/pico-utils/picoprobe"]
-	path = platform/pico/pico-utils/picoprobe
-	url = https://github.com/raspberrypi/picoprobe
-[submodule "platform/pico/pico-utils/picotool"]
-	path = platform/pico/pico-utils/picotool
+[submodule "pico-toolchain/picotool"]
+	path = pico-toolchain/picotool
 	url = https://github.com/raspberrypi/picotool
+[submodule "pico-toolchain/pico-extras"]
+	path = pico-toolchain/pico-extras
+	url = https://github.com/raspberrypi/pico-extras.git
+[submodule "pico-toolchain/picodebugger"]
+	path = pico-toolchain/picodebugger
+	url = https://github.com/raspberrypi/openocd.git
+	branch = rp2040

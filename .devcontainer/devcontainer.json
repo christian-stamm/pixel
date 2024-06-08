@@ -1,0 +1,30 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+{
+	"name": "Pico Devel",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cmake-tools",
+				"ms-vscode.vscode-serial-monitor",
+				"llvm-vs-code-extensions.vscode-clangd",
+				"twxs.cmake",
+				"marus25.cortex-debug",
+				"chris-hock.pioasm"
+			]
+		}
+	},
+	"runArgs": [
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined",
+		"--device=/dev/bus/usb",
+		"--device=/dev/ttyACM0"
+	],
+	"postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+}
