@@ -17,3 +17,6 @@
 	path = pico-toolchain/picodebugger
 	url = https://github.com/raspberrypi/openocd.git
 	branch = rp2040
+[submodule "pico-toolchain/picoprobe"]
+	path = pico-toolchain/picoprobe
+	url = https://github.com/raspberrypi/picoprobe.git
