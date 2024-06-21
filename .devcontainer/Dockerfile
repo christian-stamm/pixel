@@ -15,19 +15,28 @@ RUN apt update && \
     apt install -y $ALL_DEPS
 
 
+
 # Configure ENV PATHs
-ARG BUILD_PATH="/build"
 ARG WORKSPACE_PATH="/workspaces/pixel"
-ARG TOOLCHAIN_PATH="$WORKSPACE_PATH/pico-toolchain"
-ARG OPENOCD_PARAMS="--enable-ftdi --enable-sysfsgpio --enable-picoprobe --enable-cmsis-dap"
+ARG TOOLCHAIN_PATH="/env/devel/pico-toolchain"
 
 ENV PICO_SDK_PATH="$TOOLCHAIN_PATH/pico-sdk"
 ENV PICO_EXTRAS_PATH="$TOOLCHAIN_PATH/pico-extras"
 ENV PICO_EXAMPLES_PATH="$WORKSPACE_PATH/pico-examples"
 ENV PICO_PLAYGROUND_PATH="$WORKSPACE_PATH/pico-playground"
 
-# Install Tools
-WORKDIR "$BUILD_PATH"
-RUN git clone -b rp2040 https://github.com/raspberrypi/openocd.git --depth=1 --recurse-submodules
-RUN cd openocd && ./bootstrap && ./configure $OPENOCD_PARAMS && make -j 8 install
-RUN rm -rf "$BUILD_PATH"
+
+# Install Debugger
+WORKDIR "$TOOLCHAIN_PATH"
+
+RUN git clone https://github.com/raspberrypi/pico-sdk.git --depth=1 --recurse-submodules
+RUN git clone https://github.com/raspberrypi/pico-extras.git --depth=1 --recurse-submodules
+RUN git clone https://github.com/raspberrypi/picoprobe.git --depth=1 --recurse-submodules
+
+RUN git clone https://github.com/raspberrypi/picotool.git --depth=1 --recurse-submodules && \
+    cd picotool && mkdir -p build && cd build && cmake ../ && \
+    make -j 8 && cp picotool /usr/local/bin
+
+ARG OPENOCD_PARAMS="--enable-ftdi --enable-sysfsgpio --enable-picoprobe --enable-cmsis-dap"
+RUN git clone -b rp2040 https://github.com/raspberrypi/openocd.git "$TOOLCHAIN_PATH/picodebugger" --depth=1 --recurse-submodules && \
+    cd picodebugger && ./bootstrap && ./configure $OPENOCD_PARAMS && make -j 8 install

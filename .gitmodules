@@ -4,19 +4,3 @@
 [submodule "pico-playground"]
 	path = pico-playground
 	url = https://github.com/raspberrypi/pico-playground.git
-[submodule "pico-toolchain/pico-sdk"]
-	path = pico-toolchain/pico-sdk
-	url = https://github.com/raspberrypi/pico-sdk
-[submodule "pico-toolchain/picotool"]
-	path = pico-toolchain/picotool
-	url = https://github.com/raspberrypi/picotool
-[submodule "pico-toolchain/pico-extras"]
-	path = pico-toolchain/pico-extras
-	url = https://github.com/raspberrypi/pico-extras.git
-[submodule "pico-toolchain/picodebugger"]
-	path = pico-toolchain/picodebugger
-	url = https://github.com/raspberrypi/openocd.git
-	branch = rp2040
-[submodule "pico-toolchain/picoprobe"]
-	path = pico-toolchain/picoprobe
-	url = https://github.com/raspberrypi/picoprobe.git

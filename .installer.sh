@@ -11,7 +11,7 @@ git submodule sync --recursive
 git submodule update --recursive --init 
 
 echo "Configure USB access..."
-sudo cp "$TOOLCHAIN_PATH/picodebugger/contrib/60-openocd.rules" "/etc/udev/rules.d/"
+sudo wget https://raw.githubusercontent.com/raspberrypi/openocd/rp2040/contrib/60-openocd.rules -O "/etc/udev/rules.d/60-openocd.rules"
 sudo udevadm control --reload-rules 
 sudo udevadm trigger # restart udev
 
