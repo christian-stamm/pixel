@@ -14,8 +14,6 @@ RUN apt update && \
     apt upgrade -y && \ 
     apt install -y $ALL_DEPS
 
-
-
 # Configure ENV PATHs
 ARG WORKSPACE_PATH="/workspaces/pixel"
 ARG TOOLCHAIN_PATH="/env/devel/pico-toolchain"
@@ -32,11 +30,14 @@ WORKDIR "$TOOLCHAIN_PATH"
 RUN git clone https://github.com/raspberrypi/pico-sdk.git --depth=1 --recurse-submodules
 RUN git clone https://github.com/raspberrypi/pico-extras.git --depth=1 --recurse-submodules
 RUN git clone https://github.com/raspberrypi/picoprobe.git --depth=1 --recurse-submodules
+RUN git clone https://github.com/raspberrypi/picotool.git "$TOOLCHAIN_PATH/picotool" --depth=1 --recurse-submodules
+RUN git clone https://github.com/raspberrypi/openocd.git "$TOOLCHAIN_PATH/picodebugger" --depth=1 --recurse-submodules -b rp2040
 
-RUN git clone https://github.com/raspberrypi/picotool.git --depth=1 --recurse-submodules && \
-    cd picotool && mkdir -p build && cd build && cmake ../ && \
-    make -j 8 && cp picotool /usr/local/bin
+WORKDIR "$TOOLCHAIN_PATH/picotool"
+RUN mkdir -p build && cd build && cmake ../ && make -j 8 && \
+    cp "./picotool" "/usr/local/bin"
 
+WORKDIR "$TOOLCHAIN_PATH/picodebugger"
 ARG OPENOCD_PARAMS="--enable-ftdi --enable-sysfsgpio --enable-picoprobe --enable-cmsis-dap"
-RUN git clone -b rp2040 https://github.com/raspberrypi/openocd.git "$TOOLCHAIN_PATH/picodebugger" --depth=1 --recurse-submodules && \
-    cd picodebugger && ./bootstrap && ./configure $OPENOCD_PARAMS && make -j 8 install
+RUN ./bootstrap && ./configure $OPENOCD_PARAMS && make -j 8 install && \
+    cp "./contrib/60-openocd.rules" "/etc/udev/rules.d/"

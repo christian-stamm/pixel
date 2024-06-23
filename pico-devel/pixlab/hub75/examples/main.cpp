@@ -1,7 +1,7 @@
-// #include "hub75/driver.hpp"
-// #include "pixutils/system/logger.hpp"
-#include "pixutils/system/system.hpp"
-#include "pixutils/time/time.hpp"
+#include "pixutils/buffer.hpp"
+#include "pixutils/logger.hpp"
+#include "pixutils/system.hpp"
+#include "pixutils/types.hpp"
 
 #include <exception>
 
@@ -10,33 +10,32 @@ int main()
     System::launch();
 
     try {
+        // Watch watch(usDuration(1e6));
 
-        // Driver driver({6 * 64, 2, 25e6});
-
-        // driver.enable();
-
-        Watch watch(usDuration(1e6));
+        Buffer<Word> b1 = Buffer<Word>::build(25e3);
 
         while (System::isRunning()) {
 
-            System::log() << watch;
+            System::log(INFO) << "RESATART";
+            System::log(INFO) << b1.subrange(0, 100);
 
-            if (watch.expired()) {
-                watch.reset();
-                System::log() << "EXPIRED!";
-            }
+            auto b2 = b1.subrange(35000, 100);
 
-            System::sleep(1);
+            b2.fill(0xFF00FF00);
+
+            auto b3 = b1;
+            auto b4 = std::move(b3);
+
+            System::log(WARN) << b1.subrange(35000, 100);
+
+            System::sleep(0.1);
         }
-
-        // driver.disable();
     }
     catch (const std::exception& e) {
-        System::log(LogLevel::CRITICAL) << e.what();
+        System::log(CRITICAL) << e.what();
         System::shutdown();
         return EXIT_FAILURE;
     }
 
-    System::standby();
     return EXIT_SUCCESS;
 }

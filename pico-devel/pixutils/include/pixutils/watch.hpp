@@ -1,28 +1,25 @@
 #pragma once
-#include "pixutils/math/estimator.hpp"
-#include "pixutils/time/time.hpp"
+#include "pixutils/time.hpp"
 
 #include <format>
 #include <iostream>
 #include <optional>
 #include <string>
 
-using TimePoint  = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+using usMoment   = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 using usDuration = std::chrono::duration<double, std::micro>;
 
 class Watch {
 
   public:
     Watch(const std::optional<usDuration> timeout = std::nullopt, const bool trigger = true)
-        : estimator(Estimator<double>())
-        , timeout(timeout)
+        : timeout(timeout)
     {
         this->reset(trigger);
     }
 
     inline void reset(bool trigger = true)
     {
-        estimator.reset();
         tickpoint  = std::nullopt;
         checkpoint = std::nullopt;
 
@@ -72,8 +69,7 @@ class Watch {
     }
 
   private:
-    Estimator<double>         estimator;
-    std::optional<usDuration> timeout;
-    std::optional<TimePoint>  tickpoint;
-    std::optional<TimePoint>  checkpoint;
+    std::optional<usDuration>  timeout;
+    std::optional<usTimePoint> tickpoint;
+    std::optional<usTimePoint> checkpoint;
 };

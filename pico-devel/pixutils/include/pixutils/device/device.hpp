@@ -1,59 +1,59 @@
-#pragma once
-#include "pixutils/system/logger.hpp"
+// #pragma once
+// #include "pixutils/system/logger.hpp"
 
-#include <string>
+// #include <string>
 
-class Device {
-  public:
-    Device(const std::string& name)
-        : logger(Logger::getLogger(name))
-        , enabled(false)
-    {
-    }
+// class Device {
+//   public:
+//     Device(const std::string& name)
+//         : logger(Logger::getLogger(name))
+//         , enabled(false)
+//     {
+//     }
 
-    void enable(bool enabled = true)
-    {
-        const bool modifyState = (enabled != isEnabled());
+//     void enable(bool enabled = true)
+//     {
+//         const bool modifyState = (enabled != isEnabled());
 
-        if (modifyState) {
-            this->enabled = enabled;
+//         if (modifyState) {
+//             this->enabled = enabled;
 
-            if (enabled) {
-                prepare();
-            }
-            else {
-                cleanup();
-            }
+//             if (enabled) {
+//                 prepare();
+//             }
+//             else {
+//                 cleanup();
+//             }
 
-            logger.debug() << "Device " << (enabled ? "enabled" : "disabled") << ".";
-        }
-    }
+//             logger.debug() << "Device " << (enabled ? "enabled" : "disabled") << ".";
+//         }
+//     }
 
-    void disable()
-    {
-        enable(false);
-        reset();
-    }
+//     void disable()
+//     {
+//         enable(false);
+//         reset();
+//     }
 
-    void restart()
-    {
-        disable();
-        enable();
-    }
+//     void restart()
+//     {
+//         disable();
+//         enable();
+//     }
 
-    bool isEnabled() const
-    {
-        return enabled;
-    }
+//     bool isEnabled() const
+//     {
+//         return enabled;
+//     }
 
-    virtual void reset() {}
+//     virtual void reset() {}
 
-  protected:
-    virtual void prepare() = 0;
-    virtual void cleanup() = 0;
+//   protected:
+//     virtual void prepare() = 0;
+//     virtual void cleanup() = 0;
 
-    Logger logger;
+//     Logger logger;
 
-  private:
-    bool enabled;
-};
+//   private:
+//     bool enabled;
+// };
