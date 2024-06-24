@@ -1,56 +1,33 @@
 #pragma once
-#include "pixutils/config.hpp"
-#include "pixutils/system.hpp"
 #include "pixutils/types.hpp"
 
 #include <algorithm>
 #include <format>
 #include <iostream>
-#include <map>
+#include <memory>
 #include <ostream>
 #include <span>
+#include <stdexcept>
 #include <vector>
 
-template <typename T> using Memory = std::vector<T>;
+template <typename T> using Memory    = std::vector<T>;
+template <typename T> using MemoryPtr = std::shared_ptr<Memory<T>>;
 
 template <typename T> class Buffer : public std::span<T> {
   public:
     Buffer(const Buffer<T>& other)
-        : Buffer<T>(other.identifier, other.offset, other.length)
+        : Buffer<T>(other.storage, other.offset, other.length)
     {
-        System::log(INFO) << "COPY";
     }
 
     Buffer(Buffer<T>&& other) noexcept
-        : std::span<T>(std::move(other))
-        , offset(other.offset)
-        , length(other.length)
-        , identifier(other.identifier)
+        : Buffer<T>(std::move(other.storage), other.offset, other.length)
     {
-        System::log(INFO) << "MOVE";
-    }
-
-    ~Buffer()
-    {
-        Word remaining = memoryInstances[identifier] - 1;
-
-        System::log(INFO) << "DESTROYED: Remaining = " << remaining;
-
-        if (remaining == 0) {
-            memoryInstances.erase(identifier);
-            memoryRegistry.erase(identifier);
-        }
-        else {
-            memoryInstances[identifier] = remaining;
-        }
     }
 
     static Buffer<T> build(const Word size)
     {
-        const Word identifier       = counter++;
-        memoryRegistry[identifier]  = std::vector<T>(size);
-        memoryInstances[identifier] = 0;
-        return Buffer<T>(identifier, 0, size);
+        return Buffer<T>(std::make_shared<Memory<T>>(size), 0, size);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Buffer<T>& obj)
@@ -65,6 +42,11 @@ template <typename T> class Buffer : public std::span<T> {
         return os;
     }
 
+    inline void reset()
+    {
+        fill(0);
+    }
+
     inline void fill(const T& value)
     {
         std::fill(this->begin(), this->end(), value);
@@ -72,32 +54,27 @@ template <typename T> class Buffer : public std::span<T> {
 
     inline Buffer<T> subrange(Word offset, Word length) const
     {
-        return Buffer<T>(identifier, offset, length);
+        const Word shift = std::max<Word>(offset - this->offset, 0);
+        const Word range = std::max<Word>(this->length - shift, 0);
+
+        if (range < length) {
+            throw std::runtime_error(std::format("Out of Bounds: Requested Length={}, Valid Range={}", range, length));
+        }
+
+        return Buffer<T>(storage, this->offset + shift, length);
     }
 
-    const Word offset;
-    const Word length;
-    const Word identifier;
+    const Word         offset;
+    const Word         length;
+    const MemoryPtr<T> storage;
 
-  private:
-    Buffer(const Word identifier, const Word offset, const Word length)
-        : std::span<T>({memoryRegistry[identifier].data() + offset, length})
+  protected:
+    Buffer(const MemoryPtr<T>& storage, const Word offset, const Word length)
+        : std::span<T>({storage->data() + offset, length})
         , offset(offset)
         , length(length)
-        , identifier(identifier)
+        , storage(storage)
     {
-        Word existing               = memoryInstances[identifier] + 1;
-        memoryInstances[identifier] = existing;
-
-        System::log(INFO) << "INITIALIZED: EXISTING = " << existing;
+        this->fill(0);
     }
-
-    static Word counter;
-
-    static std::map<Word, Memory<T>> memoryRegistry;
-    static std::map<Word, Word>      memoryInstances;
 };
-
-template <typename T> inline Word                      Buffer<T>::counter = 0;
-template <typename T> inline std::map<Word, Memory<T>> Buffer<T>::memoryRegistry;
-template <typename T> inline std::map<Word, Word>      Buffer<T>::memoryInstances;

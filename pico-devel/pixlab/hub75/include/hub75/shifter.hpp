@@ -1,9 +1,10 @@
 #pragma once
 #include "hub75/shifter.pio.h"
+#include "pixutils/buffer.hpp"
 #include "pixutils/device/dma.hpp"
 #include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
-#include "pixutils/memory/buffer.hpp"
+#include "pixutils/logger.hpp"
 #include "pixutils/types.hpp"
 
 #include <hardware/clocks.h>
@@ -31,12 +32,14 @@ class Shifter : public PioMachine {
         , xferFreq(shiftcfg.xferFreq)
         , xferTime(shiftcfg.xferBits / shiftcfg.xferFreq)
         , rgbLoader(setupDmaConfig())
-        , rgbBuffer(shiftcfg.bufferSize)
+        , rgbBuffer(Buffer<Byte>::build(shiftcfg.bufferSize))
     {
         Shifter::configure(shifter_program, setupPioConfig());
 
-        if (xferFreq > clock_get_hz(clk_sys)) {
-            throw std::runtime_error("xferFreq must be slower than System Clock.");
+        const Word sysclk = clock_get_hz(clk_sys);
+
+        if (sysclk < xferFreq) {
+            throw std::runtime_error(std::format("xferFreq {} must be slower than System Clock {}.", xferFreq, sysclk));
         }
     }
 
@@ -103,7 +106,7 @@ class Shifter : public PioMachine {
     void setupRegs() const override
     {
         pio_sm_put(pioID, stmID, xferBits - 1);
-        logger.debug() << "XFERBITS: " << xferBits;
+        logger(DEBUG) << "XFERBITS: " << xferBits;
     }
 
   private:

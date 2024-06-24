@@ -1,6 +1,7 @@
 #pragma once
 #include "hub75/panel.hpp"
 #include "pixutils/device/device.hpp"
+#include "pixutils/system.hpp"
 #include "pixutils/types.hpp"
 
 #include <cmath>
@@ -20,7 +21,10 @@ class Driver : public Device {
 
     void run()
     {
-        panel.render();
+        while (System::isRunning()) {
+            System::sleep(1);
+            System::log() << "Idle";
+        }
     }
 
   protected:

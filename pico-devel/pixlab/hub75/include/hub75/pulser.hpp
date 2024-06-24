@@ -1,10 +1,9 @@
 #pragma once
-#include "hardware/pio_instructions.h"
 #include "hub75/pulser.pio.h"
+#include "pixutils/buffer.hpp"
 #include "pixutils/device/dma.hpp"
 #include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
-#include "pixutils/memory/buffer.hpp"
 #include "pixutils/types.hpp"
 
 #include <hardware/clocks.h>
@@ -13,8 +12,6 @@
 #include <hardware/structs/clocks.h>
 #include <pico/time.h>
 #include <pico/types.h>
-#include <stdexcept>
-#include <string>
 
 struct PulseConfig {
     Pin   muxBase;
@@ -39,11 +36,13 @@ class Pulser : public PioMachine {
         , pulseLength(plscfg.pulseLength)
         , pulseScaler(plscfg.pulseScaler)
         , pulseLoader(setupDmaConfig())
+        , pulseList(Buffer<Word>::build(numPlanes))
     {
         PioMachine::configure(pulser_program, setupPioConfig());
 
         if ((latchPin + 1) != powerPin) {
-            throw std::runtime_error("Power pin must be immediately consecutive to Latch pin");
+            throw std::runtime_error(
+                std::format("Power pin ({}) must be immediately consecutive to Latch pin ({})", latchPin, powerPin));
         }
     }
 
@@ -71,10 +70,10 @@ class Pulser : public PioMachine {
     void setupPulses()
     {
         float cycles = pulseLength * clock_get_hz(clk_sys);
-        pulseList.clear();
+        pulseList.reset();
 
-        for (int plane = 0; plane < numPlanes; plane++) {
-            pulseList.push_back(cycles);
+        for (uint plane = 0; plane < numPlanes; plane++) {
+            pulseList[plane] = cycles;
             cycles *= pulseScaler;
         }
     }
@@ -121,7 +120,7 @@ class Pulser : public PioMachine {
             setupPulses();
         }
         else {
-            pulseList.clear();
+            pulseList.reset();
         }
 
         pulseLoader.enable(enabled);

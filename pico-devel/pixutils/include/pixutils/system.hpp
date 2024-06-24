@@ -8,6 +8,8 @@
 #include <pico/stdio.h>
 #include <pico/stdio_usb.h>
 #include <pico/time.h>
+#include <pico/types.h>
+
 class System {
 
   public:
@@ -57,7 +59,12 @@ class System {
         return watchdog_caused_reboot();
     }
 
-    static Stream log(const LogLevel& level)
+    static inline double runtime()
+    {
+        return 1e-6 * to_us_since_boot(get_absolute_time());
+    }
+
+    static Stream log(const LogLevel& level = INFO)
     {
         return logger(level);
     }

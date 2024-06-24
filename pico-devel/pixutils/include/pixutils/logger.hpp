@@ -1,6 +1,6 @@
 #pragma once
-#include "pixutils/time.hpp"
 
+#include <chrono>
 #include <format>
 #include <iostream>
 #include <map>
@@ -25,7 +25,7 @@ class Stream {
         , target(target)
     {
         if (active) {
-            target.value().get() << std::format("[{}][{}][{}]", Time::stamp(), name, level);
+            target.value().get() << std::format("[{}][{}][{}] ", stamp(), name, level);
         }
     }
 
@@ -47,6 +47,14 @@ class Stream {
 
     const bool     active;
     const Streamer target;
+
+  private:
+    inline static const std::string stamp()
+    {
+        auto tp = std::chrono::system_clock::now();
+        auto us = std::chrono::time_point_cast<std::chrono::microseconds>(tp);
+        return std::format("{:%H:%M:%S}", us);
+    }
 };
 
 class Logger {
@@ -60,12 +68,12 @@ class Logger {
         return registry.at(name);
     }
 
-    Stream operator()(const LogLevel& level, bool condition = true)
+    Stream operator()(const LogLevel& level, bool condition = true) const
     {
         return log(level, condition);
     }
 
-    Stream log(const LogLevel& level, bool condition = true)
+    Stream log(const LogLevel& level, bool condition = true) const
     {
         const bool relevant = (level <= this->level) && (condition == true);
         return Stream(name, level2string(level), relevant ? Streamer(std::cout) : std::nullopt);

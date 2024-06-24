@@ -1,13 +1,13 @@
 #pragma once
 #include "hub75/pulser.hpp"
 #include "hub75/shifter.hpp"
+#include "pixutils/buffer.hpp"
 #include "pixutils/device/device.hpp"
 #include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
-#include "pixutils/math/matrix.hpp"
-#include "pixutils/memory/buffer.hpp"
-#include "pixutils/time/watch.hpp"
+#include "pixutils/matrix.hpp"
 #include "pixutils/types.hpp"
+#include "pixutils/watch.hpp"
 
 #include <cmath>
 #include <hardware/clocks.h>
@@ -27,11 +27,11 @@ class Panel : public Device {
   public:
     Panel(const PanelConfig& panelcfg)
         : Panel(
-              panelcfg.size,                   //
-              panelcfg.pinBase,                //
-              panelcfg.pinBase + NUM_RGB_PINS, //
-              panelcfg.pinBase + NUM_RGB_PINS + NUM_MUX_PINS,
-              panelcfg.xferFreq //
+              panelcfg.size,                                  //
+              panelcfg.pinBase,                               //
+              panelcfg.pinBase + NUM_RGB_PINS,                //
+              panelcfg.pinBase + NUM_RGB_PINS + NUM_MUX_PINS, //
+              panelcfg.xferFreq                               //
           )
     {
     }
@@ -89,57 +89,8 @@ class Panel : public Device {
                   1.45f,
               })
 
-        , input(3 * numPixels)
+        , input(Buffer<Byte>::build(3 * numPixels))
     {
-    }
-
-    void render()
-    {
-        Matrix8 mat;
-        Watch   watch;
-
-        const Word    bcmOffset  = numCols;
-        const Word    halfPixels = numCols * numLanes;
-        Buffer<Byte>& rgbBuffer  = shifter.getBuffer();
-
-        for (Word pixel = 0; pixel < halfPixels; pixel++) {
-            const Word col  = (pixel % numCols);
-            const Word lane = (pixel / numCols) % numLanes;
-
-            const Word upperBase = 3 * (col + numCols * lane);
-            const Word lowerBase = 3 * (col + numCols * lane + halfPixels);
-            const Word bcmBase   = col + (lane * NUM_BCM_BITS) * numCols;
-
-            mat.at(0) = input[upperBase + 0];
-            mat.at(1) = input[upperBase + 1];
-            mat.at(2) = input[upperBase + 2];
-            mat.at(3) = input[lowerBase + 0];
-            mat.at(4) = input[lowerBase + 1];
-            mat.at(5) = input[lowerBase + 2];
-
-            mat.transpose();
-
-            rgbBuffer[bcmBase + 0 * bcmOffset] = mat.at(0);
-            rgbBuffer[bcmBase + 1 * bcmOffset] = mat.at(1);
-            rgbBuffer[bcmBase + 2 * bcmOffset] = mat.at(2);
-            rgbBuffer[bcmBase + 3 * bcmOffset] = mat.at(3);
-            rgbBuffer[bcmBase + 4 * bcmOffset] = mat.at(4);
-            rgbBuffer[bcmBase + 5 * bcmOffset] = mat.at(5);
-            rgbBuffer[bcmBase + 6 * bcmOffset] = mat.at(6);
-            rgbBuffer[bcmBase + 7 * bcmOffset] = mat.at(7);
-
-            // logger.debug() << "INDEX: " << bcmBase + 0 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 1 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 2 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 3 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 4 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 5 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 6 * bcmOffset;
-            // logger.debug() << "INDEX: " << bcmBase + 7 * bcmOffset;
-            // logger.debug() << "----------------------------------";
-        }
-
-        logger.debug() << watch.elapsed();
     }
 
     inline void dump(Word line) const

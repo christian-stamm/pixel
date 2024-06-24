@@ -1,18 +1,16 @@
 #pragma once
-#include "pixutils/time.hpp"
+
+#include "pixutils/system.hpp"
 
 #include <format>
 #include <iostream>
 #include <optional>
 #include <string>
 
-using usMoment   = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
-using usDuration = std::chrono::duration<double, std::micro>;
-
 class Watch {
 
   public:
-    Watch(const std::optional<usDuration> timeout = std::nullopt, const bool trigger = true)
+    Watch(const std::optional<double> timeout = std::nullopt, const bool trigger = true)
         : timeout(timeout)
     {
         this->reset(trigger);
@@ -20,8 +18,8 @@ class Watch {
 
     inline void reset(bool trigger = true)
     {
-        tickpoint  = std::nullopt;
-        checkpoint = std::nullopt;
+        tickpoint.reset();
+        checkpoint.reset();
 
         if (trigger) {
             start();
@@ -30,8 +28,7 @@ class Watch {
 
     inline void start()
     {
-        checkpoint = Time::now();
-        tickpoint  = checkpoint;
+        tickpoint = checkpoint = System::runtime();
     }
 
     bool expired() const
@@ -39,27 +36,31 @@ class Watch {
         return timeout.has_value() ? (timeout.value() <= elapsed()) : false;
     }
 
-    inline usDuration elapsed() const
+    inline double elapsed() const
     {
-        if (!checkpoint.has_value()) {
-            return usDuration(0);
+        double dt = 0.0;
+
+        if (checkpoint.has_value()) {
+            dt = System::runtime() - checkpoint.value();
         }
 
-        return Time::now() - checkpoint.value();
+        return std::max<double>(dt, 0);
     }
 
-    const usDuration remaining() const
+    const double remaining() const
     {
-        if (!timeout.has_value()) {
-            return usDuration(0);
+        double dt = 0.0;
+
+        if (timeout.has_value()) {
+            dt = timeout.value() - elapsed();
         }
 
-        return timeout.value() - elapsed();
+        return std::max<double>(dt, 0);
     }
 
     const std::string to_string() const
     {
-        return std::format("Watch(Elapsed={}, Remaining={})", elapsed().count(), remaining().count());
+        return std::format("Watch(Elapsed={:.6f}s, Remaining={:.6f}s)", elapsed(), remaining());
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Watch& obj)
@@ -69,7 +70,7 @@ class Watch {
     }
 
   private:
-    std::optional<usDuration>  timeout;
-    std::optional<usTimePoint> tickpoint;
-    std::optional<usTimePoint> checkpoint;
+    std::optional<double> timeout;
+    std::optional<double> tickpoint;
+    std::optional<double> checkpoint;
 };
