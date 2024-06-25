@@ -1,9 +1,10 @@
 #pragma once
+#include "config.hpp"
 #include "hub75/shifter.pio.h"
 #include "pixutils/buffer.hpp"
 #include "pixutils/device/dma.hpp"
-#include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
+#include "pixutils/gpio.hpp"
 #include "pixutils/logger.hpp"
 #include "pixutils/types.hpp"
 
@@ -11,26 +12,12 @@
 #include <hardware/gpio.h>
 #include <hardware/pio.h>
 
-struct ShiftConfig {
-    Pin   rgbBase;
-    uint  rgbLanes;
-    Pin   clockPin;
-    uint  xferBits;
-    float xferFreq;
-    uint  bufferSize;
-};
-
 class Shifter : public PioMachine {
 
   public:
-    Shifter(const PioConfig& piocfg, const ShiftConfig& shiftcfg)
+    Shifter(const PioConfig& piocfg, const PanelConfig& pnlcfg, Buffer<Word>& frame)
         : PioMachine("Shifter", piocfg)
-        , rgbBase(PIN_WRAP(shiftcfg.rgbBase))
-        , rgbLanes(shiftcfg.rgbLanes)
-        , clockPin(PIN_WRAP(shiftcfg.clockPin))
-        , xferBits(shiftcfg.xferBits)
-        , xferFreq(shiftcfg.xferFreq)
-        , xferTime(shiftcfg.xferBits / shiftcfg.xferFreq)
+
         , rgbLoader(setupDmaConfig())
         , rgbBuffer(Buffer<Byte>::build(shiftcfg.bufferSize))
     {
@@ -55,18 +42,6 @@ class Shifter : public PioMachine {
         rgbLoader.transfer(src, dest, rgbBuffer.size());
     }
 
-    inline Buffer<Byte>& getBuffer()
-    {
-        return rgbBuffer;
-    }
-
-    const Pin   rgbBase;
-    const uint  rgbLanes;
-    const Pin   clockPin;
-    const uint  xferBits;
-    const float xferFreq;
-    const float xferTime;
-
   protected:
     DmaConfig setupDmaConfig() const
     {
@@ -86,12 +61,7 @@ class Shifter : public PioMachine {
         return cfg;
     }
 
-    virtual void autoReload(bool enabled) override
-    {
-        rgbLoader.enable(enabled);
-    }
-
-    void setupPins() const override
+    void setupPins() override
     {
         pio_gpio_init(pioID, clockPin);
 

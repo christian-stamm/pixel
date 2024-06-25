@@ -7,53 +7,53 @@ class Device {
   public:
     Device(const std::string& name)
         : logger(Logger::getLogger(name))
-        , enabled(false)
+        , loaded(false)
     {
     }
 
-    void enable(bool enabled = true)
+    void start()
     {
-        const bool modifyState = (enabled != isEnabled());
-
-        if (modifyState) {
-            this->enabled = enabled;
-
-            if (enabled) {
-                prepare();
-            }
-            else {
-                cleanup();
-            }
-
-            logger(DEBUG) << "Device " << (enabled ? "enabled" : "disabled") << ".";
+        if (!isRunning()) {
+            setupPins();
+            resetState();
+            prepare();
+            loaded = true;
+            logger(DEBUG) << "Device started.";
         }
     }
 
-    void disable()
+    void stop()
     {
-        enable(false);
-        reset();
+        if (isRunning()) {
+            cleanup();
+            resetState();
+            resetPins();
+            loaded = false;
+            logger(DEBUG) << "Device stopped.";
+        }
     }
 
     void restart()
     {
-        disable();
-        enable();
+        stop();
+        start();
     }
 
-    bool isEnabled() const
+    bool isRunning() const
     {
-        return enabled;
+        return loaded;
     }
-
-    virtual void reset() {}
 
   protected:
     virtual void prepare() = 0;
     virtual void cleanup() = 0;
+    virtual void resetState() {};
+
+    virtual void setupPins() {};
+    virtual void resetPins() {};
 
     Logger logger;
 
   private:
-    bool enabled;
+    bool loaded;
 };

@@ -1,9 +1,10 @@
 #pragma once
+#include "config.hpp"
 #include "hub75/pulser.pio.h"
 #include "pixutils/buffer.hpp"
 #include "pixutils/device/dma.hpp"
-#include "pixutils/device/gpio.hpp"
 #include "pixutils/device/pio.hpp"
+#include "pixutils/gpio.hpp"
 #include "pixutils/types.hpp"
 
 #include <hardware/clocks.h>
@@ -13,80 +14,47 @@
 #include <pico/time.h>
 #include <pico/types.h>
 
-struct PulseConfig {
-    Pin   muxBase;
-    uint  muxLanes;
-    Pin   latchPin;
-    Pin   powerPin;
-    uint  numPlanes;
-    float pulseLength;
-    float pulseScaler;
-};
-
 class Pulser : public PioMachine {
 
   public:
-    Pulser(const PioConfig& piocfg, const PulseConfig& plscfg)
+    Pulser(const PioConfig& piocfg, const PanelConfig& pnlcfg)
         : PioMachine("Pulser", piocfg)
-        , muxBase(PIN_WRAP(plscfg.muxBase))
-        , muxLanes(plscfg.muxLanes)
-        , latchPin(PIN_WRAP(plscfg.latchPin))
-        , powerPin(plscfg.powerPin)
-        , numPlanes(plscfg.numPlanes)
-        , pulseLength(plscfg.pulseLength)
-        , pulseScaler(plscfg.pulseScaler)
+        , cfg(pnlcfg)
         , pulseLoader(setupDmaConfig())
-        , pulseList(Buffer<Word>::build(numPlanes))
+        , pulseBuffer(setupPulseBuffer())
     {
         PioMachine::configure(pulser_program, setupPioConfig());
 
-        if ((latchPin + 1) != powerPin) {
-            throw std::runtime_error(
-                std::format("Power pin ({}) must be immediately consecutive to Latch pin ({})", latchPin, powerPin));
+        if ((cfg.latchPin + 1) != cfg.powerPin) {
+            throw std::runtime_error(std::format(
+                "Power pin ({}) must be immediately consecutive to Latch pin ({})", cfg.latchPin, cfg.powerPin));
         }
-    }
-
-    void select(const Word line) const
-    {
-        pio_sm_put(pioID, stmID, line);
     }
 
     inline void trigger() const
     {
-        const volatile void* src  = &pulseList.front();
+        const volatile void* src  = &pulseBuffer.front();
         volatile void*       dest = &pioID->txf[stmID];
-        pulseLoader.transfer(src, dest, pulseList.size());
+        pulseLoader.transfer(src, dest, pulseBuffer.size());
     }
 
-    const Pin   muxBase;
-    const uint  muxLanes;
-    const Pin   latchPin;
-    const Pin   powerPin;
-    const uint  numPlanes;
-    const float pulseLength;
-    const float pulseScaler;
+    const PanelConfig cfg;
 
   protected:
-    void setupPulses()
+    static Buffer<Word> setupPulseBuffer()
     {
-        float cycles = pulseLength * clock_get_hz(clk_sys);
-        pulseList.reset();
-
-        for (uint plane = 0; plane < numPlanes; plane++) {
-            pulseList[plane] = cycles;
-            cycles *= pulseScaler;
-        }
+        return Buffer<Word>::build(0);
     }
 
     virtual pio_sm_config setupPioConfig() const override
     {
-        pio_sm_config cfg = pulser_program_get_default_config(address);
+        pio_sm_config piocfg = pulser_program_get_default_config(address);
 
-        sm_config_set_out_shift(&cfg, true, true, 32);
-        sm_config_set_out_pins(&cfg, muxBase, muxLanes);
-        sm_config_set_sideset_pins(&cfg, latchPin);
+        sm_config_set_out_shift(&piocfg, true, true, 32);
+        sm_config_set_out_pins(&piocfg, cfg.muxBase, cfg.numLanes);
+        sm_config_set_sideset_pins(&piocfg, cfg.latchPin);
 
-        return cfg;
+        return piocfg;
     }
 
     DmaConfig setupDmaConfig() const
@@ -95,18 +63,18 @@ class Pulser : public PioMachine {
         return DmaConfig{dreq, true, false, DmaXferSize::DMA_SIZE_32};
     }
 
-    void setupPins() const override
+    void setupPins() override
     {
-        for (Pin pin = 0; pin < muxLanes; pin++) {
-            pio_gpio_init(pioID, PIN_WRAP(muxBase + pin));
+        for (Pin pin = 0; pin < cfg.numLanes; pin++) {
+            pio_gpio_init(pioID, PIN_WRAP(cfg.muxBase + pin));
         }
 
-        pio_gpio_init(pioID, latchPin);
-        pio_gpio_init(pioID, powerPin);
+        pio_gpio_init(pioID, cfg.latchPin);
+        pio_gpio_init(pioID, cfg.powerPin);
 
-        pio_sm_set_consecutive_pindirs(pioID, stmID, latchPin, 1, true);
-        pio_sm_set_consecutive_pindirs(pioID, stmID, powerPin, 1, true);
-        pio_sm_set_consecutive_pindirs(pioID, stmID, muxBase, muxLanes, true);
+        pio_sm_set_consecutive_pindirs(pioID, stmID, cfg.latchPin, 1, true);
+        pio_sm_set_consecutive_pindirs(pioID, stmID, cfg.powerPin, 1, true);
+        pio_sm_set_consecutive_pindirs(pioID, stmID, cfg.muxBase, cfg.numLanes, true);
     }
 
     void setupRegs() const override
@@ -123,10 +91,10 @@ class Pulser : public PioMachine {
             pulseList.reset();
         }
 
-        pulseLoader.enable(enabled);
+        pulseLoader.start(enabled);
     }
 
   private:
     DmaDevice    pulseLoader;
-    Buffer<Word> pulseList;
+    Buffer<Word> pulseBuffer;
 };

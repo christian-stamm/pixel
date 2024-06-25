@@ -1,5 +1,6 @@
 #pragma once
 #include "pixutils/device/device.hpp"
+#include "pixutils/gpio.hpp"
 
 #include <hardware/clocks.h>
 #include <hardware/gpio.h>
@@ -38,12 +39,6 @@ class PioMachine : public Device {
         pio_enable_sm_mask_in_sync(pioID, mask);
     }
 
-    virtual void reset() override
-    {
-        pio_sm_init(pioID, stmID, address, &smcfg);
-        setupRegs();
-    }
-
     const PIO  pioID;
     const uint stmID;
     const uint address;
@@ -52,12 +47,10 @@ class PioMachine : public Device {
   protected:
     virtual void prepare() override
     {
-        setupPins();
-
         pio_sm_claim(pioID, stmID);
         pio_add_program_at_offset(pioID, &program, address);
 
-        reset();
+        resetState();
         autoReload(true);
 
         pio_sm_set_enabled(pioID, stmID, autoStart);
@@ -67,14 +60,19 @@ class PioMachine : public Device {
     {
         pio_sm_set_enabled(pioID, stmID, false);
 
-        reset();
+        resetState();
         autoReload(false);
 
         pio_remove_program(pioID, &program, address);
         pio_sm_unclaim(pioID, stmID);
     }
 
-    virtual void setupPins() const {}
+    virtual void resetState() override
+    {
+        pio_sm_init(pioID, stmID, address, &smcfg);
+        setupRegs();
+    }
+
     virtual void setupRegs() const {}
     virtual void autoReload(bool enabled) {}
 
