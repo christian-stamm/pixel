@@ -9,9 +9,6 @@
 #define UART_MASK (0x00000003)
 #define GPIO_MASK (0x1FFFFFFF & ~UART_MASK)
 
-#define PIN_MASK(x) (BitMask(x))
-#define PIN_WRAP(x) (x % 32)
-
 class GPIO {
   public:
     static inline void setPin(Pin pin, bool enabled = true)

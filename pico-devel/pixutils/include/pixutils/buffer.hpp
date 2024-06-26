@@ -27,7 +27,7 @@ template <typename T> class Buffer : public std::span<T> {
 
     static Buffer<T> build(const Word size)
     {
-        return Buffer<T>(std::make_shared<Memory<T>>(size), 0, size);
+        return Buffer<T>(std::make_shared<Memory<T>>(size, 0), 0, size);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Buffer<T>& obj)
@@ -75,6 +75,5 @@ template <typename T> class Buffer : public std::span<T> {
         , length(length)
         , storage(storage)
     {
-        this->fill(0);
     }
 };

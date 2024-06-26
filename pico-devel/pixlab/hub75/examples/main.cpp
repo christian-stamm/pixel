@@ -1,3 +1,4 @@
+#include "hub75/config.hpp"
 #include "hub75/panel.hpp"
 #include "pixutils/system.hpp"
 
@@ -8,7 +9,8 @@ int main()
     System::launch();
 
     try {
-        Panel panel(PanelConfig(6 * 64, 5, 2));
+        Panel panel = Panel::build(PanelConfig::getDefault());
+
         panel.start();
         panel.run();
         panel.stop();

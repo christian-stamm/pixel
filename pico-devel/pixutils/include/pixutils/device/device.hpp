@@ -1,12 +1,14 @@
 #pragma once
 #include "pixutils/logger.hpp"
+#include "pixutils/uuid.hpp"
 
 #include <string>
 
 class Device {
   public:
     Device(const std::string& name)
-        : logger(Logger::getLogger(name))
+        : uuid(UUID::generate())
+        , logger(Logger::getLogger(name))
         , loaded(false)
     {
     }
@@ -43,6 +45,8 @@ class Device {
     {
         return loaded;
     }
+
+    const UUID uuid;
 
   protected:
     virtual void prepare() = 0;

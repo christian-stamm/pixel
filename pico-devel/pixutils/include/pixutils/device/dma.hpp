@@ -2,6 +2,7 @@
 #include "pixutils/device/device.hpp"
 #include "pixutils/types.hpp"
 
+#include <format>
 #include <hardware/dma.h>
 #include <string>
 
@@ -17,7 +18,7 @@ struct DmaConfig {
 class DmaDevice : public Device {
   public:
     DmaDevice(const DmaConfig& config)
-        : Device("DMA")
+        : Device(std::format("DMA{}", config))
         , channelNum(dma_claim_unused_channel(true))
         , config(config)
         , channelCfg(dma_channel_get_default_config(channelNum))

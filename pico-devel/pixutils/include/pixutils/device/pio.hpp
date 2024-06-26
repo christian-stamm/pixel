@@ -1,83 +1,150 @@
 #pragma once
+#include "pixutils/config.hpp"
 #include "pixutils/device/device.hpp"
-#include "pixutils/gpio.hpp"
+#include "pixutils/types.hpp"
 
+#include <format>
 #include <hardware/clocks.h>
 #include <hardware/gpio.h>
 #include <hardware/pio.h>
+#include <optional>
 #include <pico/time.h>
-#include <string>
+#include <pico/types.h>
+#include <stdexcept>
+#include <vector>
 
-struct PioConfig {
-    PIO  pioID;
-    uint stmID;
-    uint address;
-    bool autoStart = true;
+class PioCommand {
+  public:
+    PioCommand(DByte instr, std::optional<Word> data = std::nullopt)
+        : instr(instr)
+        , data(data)
+    {
+    }
+
+    void exec(const PIO& pioID, const uint& smID) const
+    {
+        if (data.has_value()) {
+            pio_sm_put(pioID, smID, data.value());
+        }
+
+        pio_sm_exec(pioID, smID, instr);
+    }
+
+    const DByte               instr;
+    const std::optional<Word> data;
 };
 
-class PioMachine : public Device {
+using PioCommands = std::vector<PioCommand>;
+
+struct PioProgram : public pio_program {
+
+    pio_sm_config           config;
+    uint                    address;
+    std::vector<PioCommand> commands;
+    bool                    autostart;
+
+    PioProgram(
+        const pio_program& base, const pio_sm_config& config, const PioCommands& commands, uint address, bool autostart)
+        : pio_program(base)
+        , config(config)
+        , address(address)
+        , commands(commands)
+        , autostart(autostart)
+    {
+    }
+};
+
+class SmDevice : public Device {
   public:
-    PioMachine(const std::string& name, const PioConfig& piocfg)
-        : Device(name)
-        , pioID(piocfg.pioID)
-        , stmID(piocfg.stmID)
-        , address(piocfg.address)
-        , autoStart(piocfg.autoStart)
-        , smcfg(pio_get_default_sm_config())
-        , program({nullptr, 0, -1})
+    static SmDevice build(const Config& config, const PIO& pioID, const PioProgram& program)
     {
+        int  instance = pio_claim_unused_sm(pioID, false);
+        bool validID  = (0 <= instance);
+
+        if (!validID) {
+            throw std::runtime_error(std::format("No Statemachine available for PIO {}.", pio_get_index(pioID)));
+        }
+        else {
+            return SmDevice(pioID, static_cast<Byte>(instance), program);
+        }
     }
 
-    void configure(const pio_program& program, const pio_sm_config& smcfg)
+    ~SmDevice()
     {
-        this->program = program;
-        this->smcfg   = smcfg;
+        pio_sm_unclaim(pioID, smID);
     }
 
-    static void run(const PIO& pioID, const Mask& mask)
-    {
-        pio_enable_sm_mask_in_sync(pioID, mask);
-    }
-
-    const PIO  pioID;
-    const uint stmID;
-    const uint address;
-    const bool autoStart;
+    const PIO        pioID;
+    const Byte       smID;
+    const PioProgram program;
 
   protected:
+    SmDevice(PIO pioID, Byte smID, const PioProgram& program)
+        : Device(std::format("Machine", smID))
+        , pioID(pioID)
+        , smID(smID)
+        , program(program)
+    {
+    }
+
     virtual void prepare() override
     {
-        pio_sm_claim(pioID, stmID);
-        pio_add_program_at_offset(pioID, &program, address);
-
         resetState();
-        autoReload(true);
-
-        pio_sm_set_enabled(pioID, stmID, autoStart);
+        pio_sm_set_enabled(pioID, smID, program.autostart);
     }
 
     virtual void cleanup() override
     {
-        pio_sm_set_enabled(pioID, stmID, false);
-
-        resetState();
-        autoReload(false);
-
-        pio_remove_program(pioID, &program, address);
-        pio_sm_unclaim(pioID, stmID);
+        pio_sm_set_enabled(pioID, smID, false);
     }
 
     virtual void resetState() override
     {
-        pio_sm_init(pioID, stmID, address, &smcfg);
-        setupRegs();
+        pio_sm_init(pioID, smID, program.address, &program.config);
+
+        for (const PioCommand& cmd : program.commands) {
+            cmd.exec(pioID, smID);
+        }
+    }
+};
+
+class PioDevice : public Device {
+  public:
+    PioDevice(const PIO pioID)
+        : Device(std::format("PIO{}", pio_get_index(pioID)))
+        , pioID(pioID)
+        , machines(0)
+    {
     }
 
-    virtual void setupRegs() const {}
-    virtual void autoReload(bool enabled) {}
+    void addProgram(PioProgram& program)
+    {
+        program.address = pio_add_program(pioID, &program);
+    }
 
-    virtual pio_sm_config setupPioConfig() const = 0;
+    void removeProgram(PioProgram& program)
+    {
+        pio_remove_program(pioID, &program, program.address);
+    }
 
-    pio_sm_config smcfg;
-    pio_program   program;
+    const PIO pioID;
+
+  protected:
+    virtual void prepare() override
+    {
+        pio_enable_sm_mask_in_sync(pioID, machines);
+    }
+
+    virtual void cleanup() override
+    {
+        pio_enable_sm_mask_in_sync(pioID, 0b0000);
+    }
+
+    virtual void resetState() override
+    {
+        pio_clear_instruction_memory(pioID);
+    }
+
+  private:
+    Mask machines;
 };
