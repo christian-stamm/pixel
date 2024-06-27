@@ -1,7 +1,8 @@
 #pragma once
-#include "hub75/renderer.hpp"
+#include "hub75/config.hpp"
+#include "hub75/config/panel.hpp"
+#include "hub75/renderer/renderer.hpp"
 #include "pixutils/buffer.hpp"
-#include "pixutils/config.hpp"
 #include "pixutils/device/device.hpp"
 #include "pixutils/gpio.hpp"
 #include "pixutils/system.hpp"
@@ -13,21 +14,12 @@
 
 class Panel : public Device {
   public:
-    static Panel build(const Config& config)
+    Panel(const PanelConfig& cfg)
+        : Device("Panel")
+        , renderer(cfg)
+        , receive(Buffer<Word>::build(cfg.numPixels))
+        , transmit(Buffer<Byte>::build(cfg.numCols * cfg.numLanes * cfg.bitDepth))
     {
-        const Config pixCfg = config.get<Config>("pixConfig");
-        const Config pinCfg = config.get<Config>("pinConfig");
-
-        return Panel(
-            config,                           //
-            pixCfg.get<Word>("numCols", 64),  //
-            pixCfg.get<Word>("numRows", 64),  //
-            pixCfg.get<Word>("bitDepth", 10), //
-
-            pinCfg.get<Pin>("rgbBase", 2), //
-            pinCfg.get<Pin>("muxBase", 8), //
-            pinCfg.get<Pin>("busBase", 13) //
-        );
     }
 
     void run()
@@ -36,62 +28,14 @@ class Panel : public Device {
 
         while (System::isRunning()) {
             watch.reset();
-            renderer.render(input, output);
+            renderer.render(receive, transmit);
 
             logger(INFO) << watch;
             System::sleep(1);
         }
     }
 
-    const Word numLanes;
-    const Word bitDepth;
-    const Word numCols;
-    const Word numRows;
-    const Word numPixels;
-
-    const Pin rgbBase;
-    const Pin muxBase;
-    const Pin busBase;
-
-    const Pin clockPin;
-    const Pin latchPin;
-    const Pin powerPin;
-
-    const Mask rgbMask;
-    const Mask muxMask;
-    const Mask busMask;
-
   protected:
-    Panel(
-        const Config& config,                                           //
-        const Word& numCols, const Word& numRows, const Word& bitDepth, //
-        const Pin& rgbBase, const Pin& muxBase, const Pin& busBase      //
-        )
-        : Device("Panel")
-        , numLanes(NUM_MUX_PINS)
-        , bitDepth(bitDepth)
-        , numCols(numCols)
-        , numRows(numRows)
-        , numPixels(numCols * numRows)
-
-        , rgbBase(PIN_WRAP(rgbBase))
-        , muxBase(PIN_WRAP(muxBase))
-        , busBase(PIN_WRAP(busBase))
-
-        , clockPin(PIN_WRAP(busBase + 0))
-        , latchPin(PIN_WRAP(busBase + 1))
-        , powerPin(PIN_WRAP(busBase + 2))
-
-        , rgbMask(FILL_MASK(NUM_RGB_PINS) << rgbBase)
-        , muxMask(FILL_MASK(NUM_MUX_PINS) << muxBase)
-        , busMask(FILL_MASK(NUM_BUS_PINS) << busBase)
-
-        , input(Buffer<Word>::build(numPixels))
-        , output(Buffer<Byte>::build(numCols * numLanes * bitDepth))
-        , renderer(Renderer::build(config))
-    {
-    }
-
     void prepare() override
     {
         writeRegister(0b0111111111111111, 12); // set max brightness
@@ -179,7 +123,7 @@ class Panel : public Device {
         GPIO::clrPin(latchPin);
     }
 
-    Buffer<Word> input;
-    Buffer<Byte> output;
     Renderer     renderer;
+    Buffer<Word> receive;
+    Buffer<Byte> transmit;
 };

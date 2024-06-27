@@ -25,7 +25,7 @@ target_include_directories(
 )
 
 pico_generate_pio_header(${PROJECT_NAME} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/renderer.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/renderer/pixshifter.pio OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/hub75/renderer
 )
 
 # enable usb output, disable uart output

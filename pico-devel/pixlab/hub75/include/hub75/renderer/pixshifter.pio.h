@@ -12,41 +12,38 @@
 // shifter //
 // ------- //
 
-#define shifter_wrap_target 2
-#define shifter_wrap 16
+#define shifter_wrap_target 0
+#define shifter_wrap 14
 
 #define shifter_BCM_DEPTH 10
 
-#define shifter_offset_setupShift 0u
-#define shifter_offset_upperShift 2u
-#define shifter_offset_lowerShift 9u
+#define shifter_offset_upperShift 0u
+#define shifter_offset_lowerShift 7u
 
 static const uint16_t shifter_program_instructions[] = {
-    0x80e0, //  0: pull   ifempty block              
-    0x6040, //  1: out    y, 32                      
             //     .wrap_target
-    0xa082, //  2: mov    exec, y                    
+    0x80e0, //  0: pull   ifempty block              
+    0x40e1, //  1: in     osr, 1                     
+    0x606a, //  2: out    null, 10                   
     0x40e1, //  3: in     osr, 1                     
     0x606a, //  4: out    null, 10                   
     0x40e1, //  5: in     osr, 1                     
-    0x606a, //  6: out    null, 10                   
-    0x40e1, //  7: in     osr, 1                     
-    0x6060, //  8: out    null, 32                   
-    0xa082, //  9: mov    exec, y                    
+    0x6060, //  6: out    null, 32                   
+    0x80e0, //  7: pull   ifempty block              
+    0x40e1, //  8: in     osr, 1                     
+    0x606a, //  9: out    null, 10                   
     0x40e1, // 10: in     osr, 1                     
     0x606a, // 11: out    null, 10                   
     0x40e1, // 12: in     osr, 1                     
-    0x606a, // 13: out    null, 10                   
-    0x40e1, // 14: in     osr, 1                     
-    0x6060, // 15: out    null, 32                   
-    0x8060, // 16: push   iffull block               
+    0x6060, // 13: out    null, 32                   
+    0x8060, // 14: push   iffull block               
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program shifter_program = {
     .instructions = shifter_program_instructions,
-    .length = 17,
+    .length = 15,
     .origin = -1,
 };
 

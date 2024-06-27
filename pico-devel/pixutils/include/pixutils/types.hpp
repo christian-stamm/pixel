@@ -8,9 +8,8 @@ using DByte = uint16_t;
 using Word  = uint32_t;
 using DWord = uint64_t;
 
-using Pin     = uint;
-using Mask    = Word;
-using Address = Word;
+using Pin  = uint;
+using Mask = Word;
 
 #define BIT_MASK(x)  (1 << x)
 #define FILL_MASK(x) (BIT_MASK(x) - 1)

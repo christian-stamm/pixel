@@ -1,22 +1,21 @@
 #pragma once
 #include "pixutils/logger.hpp"
-#include "pixutils/uuid.hpp"
 
 #include <string>
 
 class Device {
   public:
     Device(const std::string& name)
-        : uuid(UUID::generate())
-        , logger(Logger::getLogger(name))
+        : logger(Logger::getLogger(name))
         , loaded(false)
     {
     }
 
+    ~Device() = default;
+
     void start()
     {
         if (!isRunning()) {
-            setupPins();
             resetState();
             prepare();
             loaded = true;
@@ -29,7 +28,6 @@ class Device {
         if (isRunning()) {
             cleanup();
             resetState();
-            resetPins();
             loaded = false;
             logger(DEBUG) << "Device stopped.";
         }
@@ -46,15 +44,10 @@ class Device {
         return loaded;
     }
 
-    const UUID uuid;
-
   protected:
     virtual void prepare() = 0;
     virtual void cleanup() = 0;
     virtual void resetState() {};
-
-    virtual void setupPins() {};
-    virtual void resetPins() {};
 
     Logger logger;
 

@@ -2,12 +2,10 @@
 
 .define public BCM_DEPTH 10
 
-public setupShift:
-    pull    ifempty block
-    out     y,      32
 .wrap_target
 public upperShift:
-    mov     exec,   y                            
+    ; mov     exec,   y
+    pull    ifempty block        
     in      osr,    1               
     out     null,   BCM_DEPTH              
     in      osr,    1               
@@ -15,7 +13,8 @@ public upperShift:
     in      osr,    1               
     out     null,   32              
 public lowerShift:
-    mov     exec,   y               
+    ; mov     exec,   y
+    pull    ifempty block           
     in      osr,    1               
     out     null,   BCM_DEPTH              
     in      osr,    1               
@@ -23,5 +22,5 @@ public lowerShift:
     in      osr,    1              
     out     null,   32             
 shiftOut:
-    push    iffull  block         
+    push    iffull  block  
 .wrap

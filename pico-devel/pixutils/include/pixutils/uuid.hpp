@@ -21,7 +21,7 @@ class UUID {
         return UUID(blockA, blockB, blockC, blockD);
     }
 
-    bool operator==(const UUID& other)
+    bool operator==(const UUID& other) const
     {
         return (this->blockA == other.blockA) && (this->blockB == other.blockB) && //
                (this->blockC == other.blockC) && (this->blockD == other.blockD);
@@ -47,5 +47,5 @@ class UUID {
     {
     }
 
-    const uint32_t blockA, blockB, blockC, blockD;
+    uint32_t blockA, blockB, blockC, blockD;
 };
